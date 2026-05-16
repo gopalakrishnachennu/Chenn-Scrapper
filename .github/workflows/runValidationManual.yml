@@ -20,9 +20,9 @@ on:
         type: boolean
 
 env:
-  GCP_PROJECT_ID: saraljobviewer
+  GCP_PROJECT_ID: chennujobviewer
   GCP_REGION: us-east1
-  RUN_JOB_NAME: saral-dvalidate-job
+  RUN_JOB_NAME: chennu-dvalidate-job
 
 jobs:
   runValidationOnce:

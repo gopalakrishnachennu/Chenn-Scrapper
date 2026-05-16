@@ -1,5 +1,5 @@
 """
-Unified stderr logging for JobRight, Glassdoor, and ZipRecruiter scrapers.
+Unified stderr logging for JobRight, Glassdoor, ZipRecruiter, and LinkedIn scrapers.
 
 Terminal colors apply when stderr is a TTY. Disable with ``NO_COLOR=1`` (or any
 non-empty value). Force colors when piped with ``FORCE_COLOR=1`` if your pager
@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 PLATFORM_JOBRIGHT = "JobRight"
 PLATFORM_GLASSDOOR = "Glassdoor"
 PLATFORM_ZIPRECRUITER = "ZipRecruiter"
+PLATFORM_LINKEDIN = "LinkedIn"
 PLATFORM_MIDHTECH = "Midhtech"
 
 _PROGRESS_LINE_PAD = 120

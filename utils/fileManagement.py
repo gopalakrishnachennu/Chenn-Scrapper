@@ -87,6 +87,12 @@ def shouldSkipJob(job: object) -> bool:
     if not isinstance(job, dict):
         return True
     host = domainFromUrl(job.get("originalJobPostUrl"))
+    platform = str(job.get("platform") or "").strip()
+    # LinkedIn "Apply" often redirects to Indeed; those are still valid off-site applies for our pipeline.
+    if platform == "LinkedIn" and host and (
+        host == "indeed.com" or host.endswith(".indeed.com")
+    ):
+        return False
     return isBlockedDomain(host)
 
 
@@ -183,6 +189,8 @@ def inferPlatformFromPath(path: Path) -> str:
         return "GlassDoor"
     if "ziprecruiter" in name:
         return "ZipRecruiter"
+    if "linkedin" in name:
+        return "LinkedIn"
     return "Unknown"
 
 

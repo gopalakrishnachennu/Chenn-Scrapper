@@ -9,10 +9,10 @@ This document sets up automated deploys for `dValidate.py` using:
 
 Repository-specific values used below:
 
-- **Project ID:** `saraljobviewer`
-- **Artifact Registry repo:** `saral-job-viewer-cr`
+- **Project ID:** `chennujobviewer`
+- **Artifact Registry repo:** `chennu-job-viewer-cr`
 - **Registry host:** `us-east1-docker.pkg.dev`
-- **Image path base:** `us-east1-docker.pkg.dev/saraljobviewer/saral-job-viewer-cr`
+- **Image path base:** `us-east1-docker.pkg.dev/chennujobviewer/chennu-job-viewer-cr`
 - **Suggested image name:** `dvalidate`
 - **Region:** `us-east1`
 
@@ -23,7 +23,7 @@ Repository-specific values used below:
 - Dockerfile at repo root builds `dValidate.py` container (already present).
 - GCP billing enabled + required APIs enabled.
 - Artifact Registry Docker repository exists:
-  `us-east1-docker.pkg.dev/saraljobviewer/saral-job-viewer-cr`
+  `us-east1-docker.pkg.dev/chennujobviewer/chennu-job-viewer-cr`
 - Runtime env/secrets available:
   - `MONGODB_URI`
   - `MONGODB_DATABASE`
@@ -40,11 +40,11 @@ Use this once to validate your image path and permissions.
 
 ```bash
 gcloud auth login
-gcloud config set project saraljobviewer
+gcloud config set project chennujobviewer
 gcloud auth configure-docker us-east1-docker.pkg.dev
 
-docker build -t us-east1-docker.pkg.dev/saraljobviewer/saral-job-viewer-cr/dvalidate:latest .
-docker push us-east1-docker.pkg.dev/saraljobviewer/saral-job-viewer-cr/dvalidate:latest
+docker build -t us-east1-docker.pkg.dev/chennujobviewer/chennu-job-viewer-cr/dvalidate:latest .
+docker push us-east1-docker.pkg.dev/chennujobviewer/chennu-job-viewer-cr/dvalidate:latest
 ```
 
 If push succeeds, the registry path is good.
@@ -57,7 +57,7 @@ Console path:
 
 1. **Cloud Run > Jobs > Create job**
 2. Image URL:
-   `us-east1-docker.pkg.dev/saraljobviewer/saral-job-viewer-cr/dvalidate:latest`
+   `us-east1-docker.pkg.dev/chennujobviewer/chennu-job-viewer-cr/dvalidate:latest`
 3. Region: `us-east1`
 4. Tasks: `1`
 5. Command/args:
@@ -65,7 +65,7 @@ Console path:
    - Effective run should be: `python dValidate.py -1`
 6. Set env/secrets (or Secret Manager references):
    - `MONGODB_URI`
-   - `MONGODB_DATABASE=saralJobViewer`
+   - `MONGODB_DATABASE=chennuJobViewer`
    - `MIDHTECH_EMAIL`
    - `MIDHTECH_PASSWORD`
 7. Timeout: set to your expected max validation runtime (e.g. 1800s-3600s)
@@ -74,15 +74,15 @@ Console path:
 CLI equivalent:
 
 ```bash
-gcloud run jobs create saral-dvalidate-job \
-  --project=saraljobviewer \
+gcloud run jobs create chennu-dvalidate-job \
+  --project=chennujobviewer \
   --region=us-east1 \
-  --image=us-east1-docker.pkg.dev/saraljobviewer/saral-job-viewer-cr/dvalidate:latest \
+  --image=us-east1-docker.pkg.dev/chennujobviewer/chennu-job-viewer-cr/dvalidate:latest \
   --command=python \
   --args=dValidate.py,-1 \
   --task-timeout=3600s \
   --max-retries=1 \
-  --set-env-vars=MONGODB_DATABASE=saralJobViewer
+  --set-env-vars=MONGODB_DATABASE=chennuJobViewer
 ```
 
 ---
@@ -97,14 +97,14 @@ Cloud Scheduler cron for daily midnight UTC:
 You can create scheduler from Cloud Run Job UI or use CLI:
 
 ```bash
-gcloud scheduler jobs create http saral-dvalidate-midnight-utc \
-  --project=saraljobviewer \
+gcloud scheduler jobs create http chennu-dvalidate-midnight-utc \
+  --project=chennujobviewer \
   --location=us-east1 \
   --schedule="0 0 * * *" \
   --time-zone="Etc/UTC" \
-  --uri="https://us-east1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/saraljobviewer/jobs/saral-dvalidate-job:run" \
+  --uri="https://us-east1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/chennujobviewer/jobs/chennu-dvalidate-job:run" \
   --http-method=POST \
-  --oauth-service-account-email="<scheduler-sa>@saraljobviewer.iam.gserviceaccount.com"
+  --oauth-service-account-email="<scheduler-sa>@chennujobviewer.iam.gserviceaccount.com"
 ```
 
 ---

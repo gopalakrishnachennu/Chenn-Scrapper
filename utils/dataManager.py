@@ -19,6 +19,13 @@ _mongo_client: Any = None
 _mongo_db: Any = None
 
 
+def _job_storage_backend() -> str:
+    raw = (os.getenv("JOB_STORAGE_BACKEND") or "").strip().lower()
+    if raw in ("sqlite", "sql"):
+        return "sqlite"
+    return "mongo"
+
+
 def _getMongoDb():
     global _mongo_client, _mongo_db
     if _mongo_db is not None:
@@ -35,7 +42,7 @@ def _getMongoDb():
         raise ValueError("Set MONGODB_URI in .env")
     db_name = (
         (os.getenv("MONGODB_DATABASE") or os.getenv("MONGODB_DB_NAME") or "").strip()
-        or "saralJobViewer"
+        or "chennuJobViewer"
     )
     _mongo_client = MongoClient(uri)
     _mongo_db = _mongo_client[db_name]
@@ -86,7 +93,12 @@ def _mongoEnsureIndexes(recreate: bool) -> None:
 
 
 def createTables(*, recreate: bool = False) -> None:
-    """Ensure MongoDB collections and indexes exist (no-op when already present)."""
+    """Ensure MongoDB collections or SQLite tables exist."""
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import ensure_store
+
+        ensure_store(recreate=recreate)
+        return
     _mongoEnsureIndexes(recreate)
 
 
@@ -131,6 +143,10 @@ def _mongoDocToJobRow(doc: dict) -> dict:
 
 
 def upsertJobs(rows: list[dict]) -> int:
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import upsert_jobs
+
+        return upsert_jobs(rows)
     if not rows:
         return 0
     from pymongo import UpdateOne
@@ -170,6 +186,10 @@ def upsertJobs(rows: list[dict]) -> int:
 
 
 def loadJobsByPlatform(platform: str) -> list[dict]:
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import load_jobs_by_platform
+
+        return load_jobs_by_platform(platform)
     createTables(recreate=False)
     cur = _getMongoDb()[JOB_DATA_COLLECTION].find({"platform": platform})
     return [_mongoDocToJobRow(d) for d in cur]
@@ -177,6 +197,10 @@ def loadJobsByPlatform(platform: str) -> list[dict]:
 
 def loadAllJobs() -> list[dict]:
     """All rows in jobData, FIFO by timestamp (oldest first), then jobId."""
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import load_all_jobs
+
+        return load_all_jobs()
     createTables(recreate=False)
     cur = _getMongoDb()[JOB_DATA_COLLECTION].find({})
     jobs = [_mongoDocToJobRow(d) for d in cur]
@@ -196,6 +220,10 @@ def loadJobsWithEmptyApplyStatus(platform: str | None = None) -> list[dict]:
     Jobs where applyStatus is null/missing only.
     Ordered FIFO: oldest timestamp first; rows with no timestamp sort last, then jobId.
     """
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import load_jobs_with_empty_apply_status
+
+        return load_jobs_with_empty_apply_status(platform)
     createTables(recreate=False)
     query: dict[str, Any] = {"applyStatus": None}
     if platform:
@@ -206,6 +234,10 @@ def loadJobsWithEmptyApplyStatus(platform: str | None = None) -> list[dict]:
 
 
 def updateApplyStatusByJobId(jobId: str, applyStatus: str) -> bool:
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import update_apply_status_by_job_id
+
+        return update_apply_status_by_job_id(jobId, applyStatus)
     jid = str(jobId or "").strip()
     status = str(applyStatus or "").strip()
     if not jid:
@@ -218,6 +250,10 @@ def updateApplyStatusByJobId(jobId: str, applyStatus: str) -> bool:
 
 
 def loadJobsByApplyStatus(applyStatus: str) -> list[dict]:
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import load_jobs_by_apply_status
+
+        return load_jobs_by_apply_status(applyStatus)
     status = str(applyStatus or "").strip()
     if not status:
         return []
@@ -228,6 +264,10 @@ def loadJobsByApplyStatus(applyStatus: str) -> list[dict]:
 
 
 def jobDataApplyStatusSummary() -> dict[str, int]:
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import job_data_apply_status_summary
+
+        return job_data_apply_status_summary()
     createTables(recreate=False)
     db = _getMongoDb()
     job_col = db[JOB_DATA_COLLECTION]
@@ -268,6 +308,10 @@ def jobDataApplyStatusSummary() -> dict[str, int]:
 
 
 def deleteJobsByApplyStatusNotIn(allowedStatuses: list[str] | tuple[str, ...]) -> int:
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import delete_jobs_by_apply_status_not_in
+
+        return delete_jobs_by_apply_status_not_in(allowedStatuses)
     normalized = sorted(
         {str(item or "").strip() for item in allowedStatuses if str(item or "").strip()}
     )
@@ -316,6 +360,10 @@ def _parseStoredTimestampToUtc(raw: object) -> datetime | None:
 
 
 def deletePastDataOlderThanHours(*, hours: float = 48) -> int:
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import delete_past_data_older_than_hours
+
+        return delete_past_data_older_than_hours(hours=hours)
     if hours <= 0:
         raise ValueError("hours must be positive")
     createTables(recreate=False)
@@ -337,6 +385,10 @@ def deletePastDataOlderThanHours(*, hours: float = 48) -> int:
 
 
 def loadKnownJobIdsByPlatform(platform: str) -> set[str]:
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import load_known_job_ids_by_platform
+
+        return load_known_job_ids_by_platform(platform)
     createTables(recreate=False)
     db = _getMongoDb()
     job_ids = {
@@ -353,6 +405,10 @@ def loadKnownJobIdsByPlatform(platform: str) -> set[str]:
 
 
 def recordPastData(rows: list[dict], *, platform: str) -> int:
+    if _job_storage_backend() == "sqlite":
+        from utils.sqlite_job_store import record_past_data
+
+        return record_past_data(rows, platform=platform)
     if not rows:
         return 0
     from pymongo import UpdateOne

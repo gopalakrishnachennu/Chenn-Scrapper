@@ -27,7 +27,7 @@ def promptBeforeClosingBrowserIfHeaded() -> None:
     input("Press Enter to close the browser...")
 
 
-# Saral-Job-Viewer repo root (this file lives in utils/ under project root).
+# Chennu-Job-Viewer repo root (this file lives in utils/ under project root).
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -44,6 +44,29 @@ def resolveScrapingChromeDir() -> str:
 def _useUndetectedChrome() -> bool:
     v = os.getenv("USE_UNDETECTED_CHROME", "0")
     return v.strip().lower() in ("1", "true", "yes", "on")
+
+
+def _page_load_strategy(*, undetected: bool) -> str:
+    """
+    LinkedIn and other SPAs often never fire the full window 'load' event, so Selenium's
+    default 'normal' strategy can make driver.get() hang until page_load_timeout.
+    Undetected Chrome defaults to 'eager' unless SCRAPING_PAGE_LOAD_STRATEGY overrides.
+    """
+    raw = (os.getenv("SCRAPING_PAGE_LOAD_STRATEGY") or "").strip().lower()
+    if raw in ("normal", "eager", "none"):
+        return raw
+    return "eager" if undetected else "normal"
+
+
+def _apply_page_load_strategy(options, *, undetected: bool) -> None:
+    strategy = _page_load_strategy(undetected=undetected)
+    try:
+        options.page_load_strategy = strategy
+    except Exception:
+        try:
+            options.set_capability("pageLoadStrategy", strategy)
+        except Exception:
+            pass
 
 
 def resolveChromeDriverExecutable() -> str:
@@ -82,6 +105,7 @@ def _createUndetectedChromeDriver(
         ) from exc
 
     opts = uc.ChromeOptions()
+    _apply_page_load_strategy(opts, undetected=True)
     opts.binary_location = chromeAppPath
     if debugPort:
         opts.add_argument(f"--remote-debugging-port={debugPort}")
@@ -90,12 +114,16 @@ def _createUndetectedChromeDriver(
         opts.add_argument("--window-size=1920,1080")
         opts.add_argument("--disable-gpu")
 
+    # Pin major version when auto-detection pulls a mismatched ChromeDriver (common after Chrome updates).
+    _vm = (os.getenv("CHROME_VERSION_MAIN") or "").strip()
+    version_main: int | None = int(_vm) if _vm.isdigit() else None
+
     # user_data_dir as kwarg avoids duplicating --user-data-dir on the command line.
     driver = uc.Chrome(
         options=opts,
         browser_executable_path=chromeAppPath,
         user_data_dir=chromeDir,
-        version_main=None,
+        version_main=version_main,
     )
 
     if not quiet:
@@ -131,6 +159,7 @@ def createScrapingChromeDriver(*, headless: bool = True, quiet: bool = True):
         )
 
     chromeOptions = Options()
+    _apply_page_load_strategy(chromeOptions, undetected=False)
     chromeOptions.binary_location = chromeAppPath
     chromeOptions.add_argument(f"--user-data-dir={chromeDir}")
     if debugPort:

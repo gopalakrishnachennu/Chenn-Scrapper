@@ -6,13 +6,13 @@ on:
   workflow_dispatch:
 
 env:
-  GCP_PROJECT_ID: saraljobviewer
+  GCP_PROJECT_ID: chennujobviewer
   GCP_REGION: us-east1
-  AR_REPOSITORY: saral-job-viewer-cr
+  AR_REPOSITORY: chennu-job-viewer-cr
   IMAGE_NAME: dvalidate
-  RUN_JOB_NAME: saral-dvalidate-job
-  SCHEDULER_JOB_NAME: saral-dvalidate-midnight-utc
-  MONGODB_DATABASE: saralJobViewer
+  RUN_JOB_NAME: chennu-dvalidate-job
+  SCHEDULER_JOB_NAME: chennu-dvalidate-midnight-utc
+  MONGODB_DATABASE: chennuJobViewer
 
 jobs:
   deployValidation:

@@ -1,6 +1,6 @@
-﻿# Saral Job Viewer
+﻿# Chennu Job Viewer
 
-Job scraping + validation pipeline for JobRight, Glassdoor, and ZipRecruiter, with MongoDB as the source of truth.
+Job scraping + validation pipeline for JobRight, Glassdoor, ZipRecruiter, and LinkedIn Jobs (`eLinkedIn.py`), with persistence via `utils/dataManager.py` (MongoDB and/or SQLite; see `.env.example`).
 
 ## What This Repo Does
 
@@ -8,14 +8,15 @@ Job scraping + validation pipeline for JobRight, Glassdoor, and ZipRecruiter, wi
   - `aJobRight.py`
   - `bGlassDoor.py`
   - `cZipRecruiter.py`
-- Normalizes and writes jobs to MongoDB via `utils/dataManager.py`.
+  - `eLinkedIn.py` (logged-in LinkedIn Jobs search; external apply URLs only — skips Easy Apply-only postings)
+- Normalizes and writes jobs via `utils/dataManager.py` (MongoDB and/or SQLite per `.env`).
 - Runs validation/push flow against Midhtech using `dValidate.py`.
 - Supports local Docker runs and Cloud Run Job + Scheduler CI/CD.
 
 ## Current Architecture
 
 - **Scrapers**: browser-based collection and normalization
-- **Data layer**: `utils/dataManager.py` (MongoDB only)
+- **Data layer**: `utils/dataManager.py` (MongoDB and/or SQLite)
 - **Validation pipeline**: `dValidate.py`
 - **Maintenance**: `klean.py` for temp/cache cleanup
 - **Deploy**:
@@ -40,6 +41,8 @@ Copy `.env.example` to `.env` and set values.
 - `SCRAPING_STALE_DELAY`
 - `SCRAPING_HEADLESS`
 - `CLOSE_ON_COMPLETE`
+- `LINKEDIN_JOBS_LOCATION` (LinkedIn Jobs search location for `eLinkedIn.py`; default United States if unset)
+- `LINKEDIN_SCROLL_MAX_ROUNDS`, `LINKEDIN_MAX_DETAIL_JOBS` (optional tuning for `eLinkedIn.py`)
 
 ### Database + Midhtech
 
@@ -62,6 +65,7 @@ pip install -r requirements.txt
 python aJobRight.py
 python bGlassDoor.py
 python cZipRecruiter.py
+python eLinkedIn.py
 ```
 
 ## Run Validation (`dValidate.py`)
@@ -93,7 +97,7 @@ Where:
 Build:
 
 ```bash
-docker build -t saral-dvalidate .
+docker build -t chennu-dvalidate .
 ```
 
 Run once:
@@ -101,10 +105,10 @@ Run once:
 ```bash
 docker run --rm \
   -e MONGODB_URI="..." \
-  -e MONGODB_DATABASE="saralJobViewer" \
+  -e MONGODB_DATABASE="chennuJobViewer" \
   -e MIDHTECH_EMAIL="..." \
   -e MIDHTECH_PASSWORD="..." \
-  saral-dvalidate
+  chennu-dvalidate
 ```
 
 Compose one-shot:
@@ -140,5 +144,5 @@ python klean.py
 
 ## Notes
 
-- `linkedIn/` contains separate/legacy LinkedIn-specific experiments and is not part of the main root scraper flow.
+- `linkedIn/` contains legacy LinkedIn experiments; production LinkedIn scraping uses root-level **`eLinkedIn.py`** and **`utils/`**.
 - `zata/` is ignored for runtime artifacts and logs.
