@@ -539,10 +539,12 @@ def scrapeCurrentPageJobs(
             "workModel": None,
         }
 
+        pane_loaded = False
         for attempt in range(2):
             try:
                 clickCardById(driver, cardId)
                 waitForDetailsPane(driver, fallback.get("title"), log)
+                pane_loaded = True
                 break
             except TimeoutException:
                 if attempt == 0:
@@ -551,7 +553,11 @@ def scrapeCurrentPageJobs(
                     )
                     time.sleep(0.75)
                     continue
-                raise
+                log.warning(
+                    f"[{idx + 1}/{n}] detail pane timed out after retry, skipping: {cardId}",
+                )
+        if not pane_loaded:
+            continue
         detail = scrapeSelectedJobDetails(driver, fallback)
 
         jobRecord = {

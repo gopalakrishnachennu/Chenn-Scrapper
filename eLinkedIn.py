@@ -598,10 +598,14 @@ def _job_ids_from_search_result_list(driver: WebDriver) -> set[str]:
         "div.jobs-search-results-list a[href*='/jobs/view/']",
         "[data-testid='job-card-list'] a[href*='/jobs/view/']",
     )
+    from selenium.common.exceptions import StaleElementReferenceException
     ids: set[str] = set()
     for sel in list_selectors:
         for link in driver.find_elements(By.CSS_SELECTOR, sel):
-            href = (link.get_attribute("href") or "").strip()
+            try:
+                href = (link.get_attribute("href") or "").strip()
+            except StaleElementReferenceException:
+                continue
             m = _JOB_VIEW_ID_RE.search(href)
             if m:
                 ids.add(m.group(1))
@@ -612,7 +616,10 @@ def _job_ids_from_search_result_list(driver: WebDriver) -> set[str]:
         By.CSS_SELECTOR,
         'a[href*="/jobs/view/"], a[href*="/jobs/collect/"]',
     ):
-        href = (link.get_attribute("href") or "").strip()
+        try:
+            href = (link.get_attribute("href") or "").strip()
+        except StaleElementReferenceException:
+            continue
         m = _JOB_VIEW_ID_RE.search(href)
         if m:
             ids.add(m.group(1))
