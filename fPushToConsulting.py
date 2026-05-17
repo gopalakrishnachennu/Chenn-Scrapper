@@ -1,5 +1,5 @@
 """
-Push APPLY-classified jobs from local DB to chennu.co consulting platform.
+Push all scraped jobs from local DB to chennu.co consulting platform.
 
 Maps scraper field formats to Django's RawJob schema with all corrections:
   - employment_type:  "Full-time"         → "FULL_TIME"
@@ -326,13 +326,13 @@ def push_apply_jobs(*, dry_run: bool = False, reset: bool = False) -> dict:
             "Get it from the .env on the server running chennu.co and add it to this .env."
         )
 
-    from utils.dataManager import loadJobsByApplyStatus
+    from utils.dataManager import loadAllJobs
 
-    apply_jobs = loadJobsByApplyStatus("APPLY")
+    all_jobs = loadAllJobs()
     pushed_ids = set() if reset else _load_pushed_ids()
-    new_jobs = [j for j in apply_jobs if str(j.get("jobId") or "") not in pushed_ids]
+    new_jobs = [j for j in all_jobs if str(j.get("jobId") or "") not in pushed_ids]
 
-    print(f"  APPLY jobs in DB:   {len(apply_jobs)}")
+    print(f"  Total jobs in DB:   {len(all_jobs)}")
     print(f"  Already pushed:     {len(pushed_ids)}")
     print(f"  New jobs to push:   {len(new_jobs)}")
 

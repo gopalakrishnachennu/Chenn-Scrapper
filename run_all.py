@@ -3,10 +3,9 @@ Full pipeline runner — scrape all platforms, enrich, validate, push.
 
 Usage:
   python run_all.py                # full pipeline: scrape → enrich → validate → push
-  python run_all.py --no-validate  # skip dValidate and push steps
   python run_all.py --no-push      # skip push to chennu.co
   python run_all.py --enrich-only  # only run the description enricher
-  python run_all.py --push-only    # only push APPLY jobs to chennu.co
+  python run_all.py --push-only    # only push all jobs to chennu.co
 
 Scrapers run sequentially (they share a Chrome profile).
 Each scraper gets CLOSE_ON_COMPLETE=1 so headed runs don't block.
@@ -99,7 +98,6 @@ def _run_push() -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description='Run all scrapers, enrich, validate, push.')
-    parser.add_argument('--no-validate', action='store_true', help='Skip dValidate and push steps')
     parser.add_argument('--no-push',     action='store_true', help='Skip push to chennu.co')
     parser.add_argument('--enrich-only', action='store_true', help='Only run the description enricher')
     parser.add_argument('--push-only',   action='store_true', help='Only push APPLY jobs to chennu.co')
@@ -131,11 +129,9 @@ def main() -> int:
     # ── Enricher ─────────────────────────────────────────────────────────────
     _run_enricher()
 
-    # ── Validate → Push ──────────────────────────────────────────────────────
-    if not args.no_validate:
-        _run_validate()
-        if not args.no_push:
-            _run_push()
+    # ── Push ─────────────────────────────────────────────────────────────────
+    if not args.no_push:
+        _run_push()
 
     # ── Summary ──────────────────────────────────────────────────────────────
     elapsed = time.time() - start
